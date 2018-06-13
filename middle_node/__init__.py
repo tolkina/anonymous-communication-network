@@ -2,6 +2,7 @@ import socket
 import threading
 from multiprocessing.pool import ThreadPool
 
+import global_utils
 from global_utils import *
 
 __requests = {}
@@ -60,6 +61,8 @@ class MiddleNode(threading.Thread):
         self.__element_x_polycyclic = None
         self.__secret_keys_right_subgroup_for_other_nodes = {}
         self.__open_keys_for_other_nodes = {}
+        self.__next_node = None
+        self.__prev_node = None
 
     def start(self):
         super().start()
@@ -185,3 +188,11 @@ class MiddleNode(threading.Thread):
                 'conjugate_algorithm': 'braid'
             }
         raise Exception('Incorrect params')
+
+    @request_method('extend')
+    def extend_request(self, kwargs):
+        self.__prev_node = kwargs['sender']
+        if self.__next_node is None:
+            self.__next_node = kwargs['next_node']
+        else:
+            global_utils.send_request(*kwargs['next_node'], 'extend', '')

@@ -1,5 +1,7 @@
 import json
 import random
+import socket
+
 import numpy
 
 
@@ -83,3 +85,14 @@ def gen_chain(nodes, secret_keys_right_subgroup, element_x_braid, left_subgroup_
                          "open_key_method": my_method_keys[three_methods[i]][0],
                          "secret_key_method": my_method_keys[three_methods[i]][1]}})
     return f
+
+
+def send_request(host, port, method, params):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((host, port))
+        sock.sendall(json.dumps({
+            "method": method,
+            "params": params
+        }).encode())
+        res = recvall(sock)
+        return res

@@ -2,6 +2,7 @@ import socket
 import threading
 from multiprocessing.pool import ThreadPool
 
+import global_utils
 from global_utils import *
 
 __requests = {}
@@ -60,6 +61,9 @@ class InputNode(threading.Thread):
         self.__element_x_polycyclic = None
         self.__secret_keys_right_subgroup_for_other_nodes = {}
         self.__open_keys_for_other_nodes = {}
+        self.__chain = None
+        self.__groups = []
+        self.__next_node = None
 
     def start(self):
         super().start()
@@ -174,3 +178,9 @@ class InputNode(threading.Thread):
                                              self.__element_x_grigorchuk, self.__left_subgroup_grigorchuk,
                                              self.__element_x_polycyclic, self.__left_subgroup_polycyclic)
                     print(self.__chain)
+
+    def extend_chain(self, next_node):
+        if self.__next_node is None:
+            global_utils.send_request(*next_node, 'create', '')
+        else:
+            global_utils.send_request(*self.__next_node, 'extend', '')
