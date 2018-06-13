@@ -1,5 +1,6 @@
 import socket
 import threading
+import urllib3
 from multiprocessing.pool import ThreadPool
 
 import global_utils
@@ -24,6 +25,7 @@ def run_request_method(name, args):
                 'data': res
             })
         except Exception as e:
+            print(e)
             return json.dumps({
                 'status_code': 1,
                 'error_message': repr(e)
@@ -61,8 +63,7 @@ class MiddleNode(threading.Thread):
         self.__element_x_polycyclic = None
         self.__secret_keys_right_subgroup_for_other_nodes = {}
         self.__open_keys_for_other_nodes = {}
-        self.__next_node = None
-        self.__prev_node = None
+        self.__next_node = {}
 
     def start(self):
         super().start()
@@ -178,21 +179,35 @@ class MiddleNode(threading.Thread):
 
     @request_method('create')
     def create_request(self, kwargs):
-        if ('c1' in kwargs.keys() and
-                'conjugate_braid' in kwargs.keys() and
-                'algorithm' in kwargs.keys() and
-                'encrypted_message' in kwargs.keys()):
-            return {
-                'response': 'created',
-                'hash': 'J978tGYG87g0IUIUT67tr8OYG78tGLIK',
-                'conjugate_algorithm': 'braid'
-            }
-        raise Exception('Incorrect params')
+        return {
+            'response': 'created'
+        }
 
     @request_method('extend')
     def extend_request(self, kwargs):
-        self.__prev_node = kwargs['sender']
-        if self.__next_node is None:
-            self.__next_node = kwargs['next_node']
+        if kwargs['sender'][0] in self.__next_node.keys():
+            global_utils.send_request(*self.__next_node[kwargs['sender'][0]], 'extend', {
+                'sender': (self.__host, self.__port),
+                'next_node': kwargs['next_node']
+            })
+            print(kwargs['sender'], kwargs['next_node'], 'extend')
         else:
-            global_utils.send_request(*kwargs['next_node'], 'extend', '')
+            self.__next_node[kwargs['sender'][0]] = kwargs['next_node']
+            global_utils.send_request(*self.__next_node[kwargs['sender'][0]], 'create', {})
+            print(kwargs['sender'], kwargs['next_node'], 'create')
+
+    @request_method('relay')
+    def relay_request(self, kwargs):
+        if kwargs['sender'][0] in self.__next_node.keys():
+            return global_utils.send_request(*self.__next_node[kwargs['sender'][0]], 'relay', {
+                'sender': (self.__host, self.__port),
+                'url': kwargs['url']
+            })
+        else:
+            http = urllib3.PoolManager()
+            r = http.request('GET', kwargs['url'])
+            f = open('tmp.html', 'wb')
+            f.write(r.data)
+            f.close()
+            with open('tmp.html', 'r') as f:
+                return f.read()

@@ -179,8 +179,21 @@ class InputNode(threading.Thread):
                                              self.__element_x_polycyclic, self.__left_subgroup_polycyclic)
                     print(self.__chain)
 
+    def get_chain(self):
+        return self.__chain
+
     def extend_chain(self, next_node):
         if self.__next_node is None:
-            global_utils.send_request(*next_node, 'create', '')
+            self.__next_node = next_node
+            global_utils.send_request(*next_node, 'create', {})
         else:
-            global_utils.send_request(*self.__next_node, 'extend', '')
+            global_utils.send_request(*self.__next_node, 'extend', {
+                'sender': (self.__host, self.__port),
+                'next_node': next_node
+            })
+
+    def send_request(self, node, url):
+        return global_utils.send_request(*node, 'relay', {
+            'sender': (self.__host, self.__port),
+            'url': url
+        })
